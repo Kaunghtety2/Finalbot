@@ -1,19 +1,21 @@
-# Telegram Bot API framework
-python-telegram-bot --upgrade
+# Telegram Bot API (v20 အထက်)
+python-telegram-bot>=20.0
 
-# HTTP Requests and Async support
+# HTTP Requests များအတွက်
 requests
 aiohttp
-aiofiles
 httpx
 urllib3
 
-# HTML/XML Parsing
+# Asynchronous File Operations များအတွက်
+aiofiles
+
+# Website HTML များကို Parse လုပ်ရန် (Web Scraping/Downloading)
 beautifulsoup4
 lxml
 
-# Environment variables
-python-dotenv
-
-# System monitoring (optional but recommended for memory management)
+# System Memory (RAM) အခြေအနေကို စစ်ဆေးရန် (Memory Monitor)
 psutil
+
+# Environment variables များကို အသုံးပြုရန် (Optional but useful)
+python-dotenv
