@@ -596,6 +596,7 @@ _RE_ROBOTS_SM   = re.compile(r'(?i)sitemap:\s*(https?://\S+)')
 # v35 new patterns for enhanced asset extraction
 _RE_NEXT_CHUNK  = re.compile(r'/_next/static/[^\s"\'<>]+')
 _RE_WEBPACK_CHUNK = re.compile(r'["`\']([a-f0-9]{8,20}\.[a-z0-9]+\.(?:js|css))["`\']')
+_RE_WEBPACK_PUBLIC = re.compile(r'__webpack_public_path__\s*=\s*["`\'](.*?)["`\']|publicPath\s*:\s*["`\'](.*?)["`\']')
 _RE_SRCSET_PART = re.compile(r'([^\s,]+)(?:\s+(?:\d+(?:\.\d+)?[wx]))?')
 _RE_SW_REGISTER = re.compile(r'''navigator\.serviceWorker\.register\s*\(\s*["`']([^`'"]+)["`']''')
 _RE_WIN_STATE   = re.compile(r'''window\.__(?:INITIAL_STATE|PRELOADED_STATE|NEXT_DATA|NUXT__)__\s*=\s*(\{.{20,5000}?\})''', re.DOTALL)
@@ -1841,7 +1842,7 @@ def extract_assets(html: str, page_url: str, soup=None) -> set:
     # ── Detect Webpack publicPath for better chunk URL resolution ────
     webpack_origin = origin
     for m in _RE_WEBPACK_PUBLIC.finditer(html):
-        pp = m.group(1).strip()
+        pp = (m.group(1) or m.group(2) or "").strip()
         if pp.startswith('http'):
             webpack_origin = pp.rstrip('/')
             break
@@ -6988,7 +6989,6 @@ def _subdomains_sync(domain: str, progress_q: list) -> dict:
         h for h, info in http_status.items() if info.get("interesting")
     ]
 
-    _active_scans.pop(uid, None)
     return results
 
 
