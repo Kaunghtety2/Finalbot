@@ -1,0 +1,8 @@
+python-telegram-bot[webhooks]>=21.0
+requests
+urllib3
+beautifulsoup4
+lxml
+python-dotenv
+PyMySQL>=1.1.0
+cryptography
