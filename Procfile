@@ -1,1 +1,1 @@
-worker: python bot_merged_v39.py
+worker: python bot_merged_v40.py
