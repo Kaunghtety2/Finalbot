@@ -1,8 +1,19 @@
-python-telegram-bot[webhooks]>=21.0
+# Telegram Bot API framework
+python-telegram-bot --upgrade
+
+# HTTP Requests and Async support
 requests
+aiohttp
+aiofiles
+httpx
 urllib3
+
+# HTML/XML Parsing
 beautifulsoup4
 lxml
+
+# Environment variables
 python-dotenv
-PyMySQL>=1.1.0
-cryptography
+
+# System monitoring (optional but recommended for memory management)
+psutil
