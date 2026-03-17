@@ -1,23 +1,10 @@
-# Telegram Bot API (v20 အထက်)
-python-telegram-bot>=20.0
-
-# HTTP Requests များအတွက်
-requests
-aiohttp
-httpx
-urllib3
-aiohttp>=3.9.0
-aiohttp-socks>=0.8.0
-
-# Asynchronous File Operations များအတွက်
-aiofiles
-
-# Website HTML များကို Parse လုပ်ရန် (Web Scraping/Downloading)
-beautifulsoup4
-lxml
-
-# System Memory (RAM) အခြေအနေကို စစ်ဆေးရန် (Memory Monitor)
-psutil
-
-# Environment variables များကို အသုံးပြုရန် (Optional but useful)
-python-dotenv
+python-telegram-bot==20.8
+aiohttp==3.9.3
+aiofiles==23.2.1
+beautifulsoup4==4.12.3
+requests==2.31.0
+psutil==5.9.8
+python-dotenv==1.0.1
+playwright==1.42.0
+lxml==5.1.0
+h2==4.1.0
