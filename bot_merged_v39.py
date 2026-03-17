@@ -257,6 +257,18 @@ class ThreadSafeDict:
         with self._lock:
             return list(self._data.keys())
     
+    def __setitem__(self, key, value):
+        with self._lock:
+            self._data[key] = value
+
+    def __getitem__(self, key):
+        with self._lock:
+            return self._data[key]
+
+    def __delitem__(self, key):
+        with self._lock:
+            del self._data[key]
+
     def __contains__(self, key):
         with self._lock:
             return key in self._data
@@ -5071,6 +5083,10 @@ def download_website(
 
     # ── Site profile ─────────────────────────────────────────────────
     if not hasattr(site_profile, 'asset_workers'):
+        # BUG FIX v39: detect_site_profile မပြီးမချင်း progress_cb မခေါ်တဲ့ ပြသနာ fix
+        # → user မြင်တာ: 0% stuck ဖြစ်နေတယ်ထင် (spinner frozen)
+        if progress_cb:
+            progress_cb("🔍 Site စစ်ဆေးနေပါတယ်...")
         site_profile = detect_site_profile(base_url)  # type: ignore[name-defined]
     ASSET_WORKERS = max(1, site_profile.asset_workers)
     PAGE_DELAY    = site_profile.page_delay
@@ -10119,17 +10135,18 @@ async def _run_download(
     _cancel_flags[uid] = cancel_event
 
     _spin_idx = [0]
+    _last_edit_time = [0.0]   # BUG FIX v39: spinner frozen ပြသနာ fix
     async def progress_loop():
         """
-        BUG FIX v36:
-        - ပထမ tick: 0.5s (was 2.0s) — short downloads မှာ progress မပြတဲ့ ပြသနာ fix
-        - ၂ ကြိမ်မြောက်မှ 1.5s interval (was 2.0s)
-        - text မပြောင်းရင် edit_text မခေါ် → "message is not modified" error ကင်း
+        BUG FIX v39:
+        - Spinner frozen ပြသနာ fix: body မပြောင်းသော်လည်း 4s တိုင်း force update
+          → user မြင်တာ: spinner ပတ်နေဆဲ = download still running သိနိုင်
+        - ပထမ tick: 0.5s — short downloads catch ဖို့
+        - ၂ ကြိမ်မြောက်မှ 1.5s interval
         - RetryAfter ကို dynamic sleep + retry
         """
         first_tick = True
         while True:
-            # ပထမ tick မြန်မြန် (0.5s) — short downloads catch ဖို့
             await asyncio.sleep(0.5 if first_tick else 1.5)
             first_tick = False
 
@@ -10138,8 +10155,12 @@ async def _run_download(
 
             body = last['t'] if last['t'] else "`░░░░░░░░░░░░░░░░░░`  0%"
 
-            # Text မပြောင်းသေးရင် Telegram FloodWait မဖြစ်ဖို့ skip
-            if body == last['sent']:
+            now = asyncio.get_event_loop().time()
+            body_changed = (body != last['sent'])
+            spin_overdue = (now - _last_edit_time[0]) >= 4.0  # 4s spinner force update
+
+            # Body မပြောင်းဘူး + spin cooldown မကုန်သေးရင် skip (FloodWait ကာကွယ်)
+            if not body_changed and not spin_overdue:
                 continue
 
             spin = SPINNER_BRAILLE[_spin_idx[0] % len(SPINNER_BRAILLE)]
@@ -10151,6 +10172,7 @@ async def _run_download(
             try:
                 await msg.edit_text(full_text, parse_mode='Markdown')
                 last['sent'] = body
+                _last_edit_time[0] = now
             except RetryAfter as e:
                 wait = getattr(e, 'retry_after', 5) + 1
                 try:
@@ -12751,34 +12773,10 @@ async def cmd_discover(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # ── Combined summary ──────────────────────────────────────────────
         lines = [
-            f"🔍 *Full Recon Report — `{domain}`*",
+            f"🔎 *Full Discovery Report — `{domain}`*",
             "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
             f"📅 Date: `{datetime.now().strftime('%Y-%m-%d %H:%M')}`",
-            f"⏱ Total Time: `{sum(r.get('elapsed', 0) for r in _results.values() if isinstance(r, dict)):.2f}s`\n",
         ]
-        if 'tech' in _results:
-            det = _results['tech'].get('detected', {})
-            if det:
-                lines.append("💻 *Tech Stack:*")
-                for cat, techs in det.items():
-                    lines.append(f"  • {cat}: `{', '.join(techs)}` ")
-            else:
-                lines.append("💻 *Tech Stack:* `None detected` ")
-        if 'headers' in _results:
-            h = _results['headers']
-            lines.append(f"\n🛡 *Security Headers:* `{len(h.get('headers', {}))}` total")
-            missing = h.get('missing_security', [])
-            if missing: lines.append(f"  • Missing: `{', '.join(missing)}` ")
-            else: lines.append("  ✅ All security headers present! ")
-        if 'whois' in _results:
-            w = _results['whois']
-            lines.append(f"\n🌐 *Network:*")
-            lines.append(f"  • IP: `{w.get('hp', 'N/A')}` ")
-            if 'org' in w: lines.append(f"  • Org: `{w['org']}` ")
-        if 'links' in _results:
-            l = _results['links']
-            lines.append(f"\n🔗 *Links:* `{len(l.get('internal', []))}` internal | `{len(l.get('external', []))}` external")
-        lines.append("\n💡 _Use `/discover` for deeper API & secret scanning._")
         
         if not isinstance(sens_r, Exception):
             found_sens = len(sens_r.get("found", []))
@@ -14676,22 +14674,6 @@ _TECH_SIGNATURES = {
     "Sucuri":         [r'X-Sucuri', r'sucuri', r'sitecheck\.sucuri'],
     "Imperva":         [r'X-CDN: Imperva', r'incapsula', r'visid_incap'],
 }
-
-def _cache_get(key: str):
-    """Return cached result if still fresh, else None."""
-    entry = _scan_cache.get(key)
-    if entry and (time.time() - entry[0]) < _SCAN_CACHE_TTL:
-        return entry[1]
-    _scan_cache.pop(key, None)
-    return None
-
-def _cache_set(key: str, result):
-    """Store result in cache. Evict oldest if > 200 entries."""
-    if len(_scan_cache) > 200:
-        oldest = min(_scan_cache, key=lambda k: _scan_cache[k][0])
-        _scan_cache.pop(oldest, None)
-    _scan_cache[key] = (time.time(), result)
-
 
 _SQLI_PAYLOADS_BASIC = [
     # ── Error-based — quote break (all DB types) ─────────────────────
