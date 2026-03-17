@@ -4393,6 +4393,15 @@ def _format_vuln_report(r: dict) -> str:
             lines.append(f"  • `{urlparse(s).netloc}`")
         lines.append("")
 
+    # ── Remediation hints per severity ───────────────────────────
+    _REMEDIATION_HINTS = {
+        "CRITICAL": "🔧 _Immediately restrict access & rotate credentials_",
+        "HIGH":     "🔧 _Restrict access via server config or .htaccess_",
+        "MEDIUM":   "🔧 _Review exposure and apply access controls_",
+        "LOW":      "🔧 _Consider restricting public access_",
+        "INFO":     "",
+    }
+
     # ── Findings grouped by severity ─────────────────────────────
     if all_exposed:
         lines.append("*🚨 Findings by Severity:*")
@@ -10208,12 +10217,13 @@ async def _run_download(
         except Exception as e:
             prog.cancel()
             err_name = type(e).__name__
+            err_detail = str(e)[:80] if err_name == "NameError" else ""
             err_hint = {
                 "ConnectionError":  "🌐 ဆာဗာနဲ့ ချိတ်ဆက်မရပါ",
                 "TimeoutError":     "⏱️ Response timeout ဖြစ်သွားတယ်",
                 "SSLError":         "🔒 SSL certificate ပြဿနာ",
                 "TooManyRedirects": "🔄 Redirect loop ဖြစ်နေတယ်",
-            }.get(err_name, f"⚠️ {err_name}")
+            }.get(err_name, f"⚠️ {err_name}" + (f": `{err_detail}`" if err_detail else ""))
             await msg.edit_text(
                 f"❌ *Download မအောင်မြင်ဘူး*\n\n"
                 f"{err_hint}\n\n"
