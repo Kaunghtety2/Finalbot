@@ -6,6 +6,8 @@ requests
 aiohttp
 httpx
 urllib3
+aiohttp>=3.9.0
+aiohttp-socks>=0.8.0
 
 # Asynchronous File Operations များအတွက်
 aiofiles

@@ -9801,6 +9801,40 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show main help menu with category buttons"""
+    uid = update.effective_user.id
+    is_adm = uid in ADMIN_IDS
+    kb_rows = [
+        [
+            InlineKeyboardButton("📥 Download",      callback_data="help_dl"),
+            InlineKeyboardButton("🔍 Scanner",        callback_data="help_scan"),
+        ],
+        [
+            InlineKeyboardButton("🕵️ Recon",          callback_data="help_recon"),
+            InlineKeyboardButton("🔎 Discover",        callback_data="help_discover"),
+        ],
+        [
+            InlineKeyboardButton("🔔 Monitor",        callback_data="help_monitor"),
+            InlineKeyboardButton("📊 Account",         callback_data="help_account"),
+        ],
+        [
+            InlineKeyboardButton("🆕 V20 Security",   callback_data="help_v20"),
+            InlineKeyboardButton("📱 App Analyzer",    callback_data="help_app"),
+        ],
+        [
+            InlineKeyboardButton("🛠️ Tools",           callback_data="help_tools"),
+        ],
+    ]
+    if is_adm:
+        kb_rows.append([InlineKeyboardButton("👑 Admin Panel", callback_data="help_admin")])
+    await update.effective_message.reply_text(
+        "📖 *Help — Category ရွေးပါ*",
+        reply_markup=InlineKeyboardMarkup(kb_rows),
+        parse_mode='Markdown'
+    )
+
+
 # ──────────────────────────────────────────────────
 # Help category callback handler
 # ──────────────────────────────────────────────────
